@@ -7,7 +7,6 @@ import fgourl
 import mytime
 import rsa
 
-
 class ParameterBuilder:
     def __init__(self, uid: str, auth_key: str, secret_key: str):
         self.uid_ = uid
