@@ -72,10 +72,23 @@ TelegramAdminId = ''
 def SendMessageToAdmin(message):
     if TelegramBotToken != 'nullvalue':
         nowtime = mytime.GetFormattedNowTime()
-        url = f'https://api.telegram.org/bot{TelegramBotToken}/sendMessage?chat_id={TelegramAdminId}&parse_mode=markdown&text=_{nowtime}_\n{message}'
-        result = json.loads(requests.get(url, verify=False).text)
-        if not result['ok']:
-            print(result)
+        url = f'https://api.telegram.org/bot{TelegramBotToken}/sendMessage'
+        payload = {
+            'chat_id': TelegramAdminId,
+            'parse_mode': 'markdown',
+            'text': f'_{nowtime}_\n{message}',
+        }
+        try:
+            result = requests.post(url, data=payload, verify=False, timeout=30).json()
+            if not result.get('ok'):
+                # 消息里的下划线/反引号可能破坏 markdown 解析，退化成纯文本重发一次
+                payload.pop('parse_mode', None)
+                result = requests.post(url, data=payload, verify=False, timeout=30).json()
+                if not result.get('ok'):
+                    print(result)
+                    print(message)
+        except Exception as ex:
+            print(f'Telegram send failed: {ex}')
             print(message)
 
 
