@@ -5,6 +5,7 @@ import base64
 from urllib.parse import quote_plus
 import fgourl
 import mytime
+import privacy
 import rsa
 
 class ParameterBuilder:
@@ -85,7 +86,9 @@ class user:
         self.builder_.AddParameter('userState', str(userState))
         data = self.Post(f'{fgourl.server_addr_}/login/top?_userId={self.user_id_}')
 
-        self.name_ = hashlib.md5(data['cache']['replaced']['userGame'][0]['name'].encode('utf-8')).hexdigest()
+        raw_name = data['cache']['replaced']['userGame'][0]['name']
+        # 不再用裸 MD5（可被字典反推），改为加盐哈希，见 privacy.py
+        self.name_ = privacy.name_id(raw_name, self.builder_.secret_key_)
         stone = data['cache']['replaced']['userGame'][0]['stone']
         lv = data['cache']['replaced']['userGame'][0]['lv']
         ticket = 0

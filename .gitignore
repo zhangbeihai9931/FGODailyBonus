@@ -1,3 +1,28 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---- 本地运行产物（绝对不要提交）----
+.venv/
+venv/
+logs/
+cfg.json
+最新结果.txt
+FGO.txt
+*.log
+tmp/
+
+# ---- 密钥备份 / 构建输出 ----
+*.orig.pem
+vs/build/
+vs/bin/
+vs/obj/
+*.exe
+
+# ---- 本地文档 ----
+*.docx
+*.pdf
+
+# ---- 原有规则 ----
 *.cmd
-__pycache__
-tmp

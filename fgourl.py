@@ -1,6 +1,7 @@
 import json
 import binascii
 import base64
+import os
 import re
 import requests
 import mytime
@@ -24,13 +25,57 @@ user_agent_ = 'Dalvik/2.1.0 (Linux; U; Android 11; Pixel 5 Build/RD1A.201105.003
 
 
 # ==== User Info ====
+CONF_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cfg.json')
+
+
+def _read_conf_remote():
+    """读远端 cfg.json：先走带 token 的 API（支持私有日志仓库），再退回 raw 地址。"""
+    if github_token_:
+        try:
+            res = requests.get(
+                f'https://api.github.com/repos/{github_name_}/FGODailyBonusLog/contents/cfg.json',
+                headers={
+                    'Authorization': 'token ' + github_token_,
+                    'User-Agent': f'{github_name_}_bot',
+                    'Accept': 'application/vnd.github+json',
+                },
+                timeout=20,
+            )
+            if res.status_code == 200:
+                payload = res.json()
+                return json.loads(base64.b64decode(payload['content']).decode('utf-8'))
+            print(f'[cfg] GitHub API 返回 {res.status_code}，改用 raw 地址')
+        except Exception as ex:
+            print(f'[cfg] GitHub API 读取失败：{ex}')
+
+    try:
+        res = requests.get(
+            f'https://raw.githubusercontent.com/{github_name_}/FGODailyBonusLog/main/cfg.json',
+            verify=False, timeout=20,
+        )
+        return json.loads(res.text)
+    except Exception as ex:
+        print(f'[cfg] raw 地址读取失败：{ex}')
+        return None
+
+
 def ReadConf():
-    data = json.loads(
-        requests.get(
-            url=f'https://raw.githubusercontent.com/{github_name_}/FGODailyBonusLog/main/cfg.json', verify=False
-        ).text
-    )
     global app_ver_, data_ver_, date_ver_, asset_bundle_folder_, data_server_folder_crc_
+    data = _read_conf_remote()
+
+    if data and 'global' in data:
+        try:
+            with open(CONF_CACHE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except OSError:
+            pass
+        print(f'[cfg] 远端读取成功并缓存: appVer={data["global"]["appVer"]}')
+    else:
+        print('[cfg] 远端不可用，改用本地缓存')
+        with open(CONF_CACHE, encoding='utf-8') as f:
+            data = json.load(f)
+        print(f'[cfg] 本地缓存: appVer={data["global"]["appVer"]} dataVer={data["global"]["dataVer"]}')
+
     app_ver_ = data['global']['appVer']
     data_ver_ = data['global']['dataVer']
     date_ver_ = data['global']['dateVer']
@@ -98,13 +143,17 @@ def SendMessageToAdmin(message):
 # ===== Github api =====
 def UploadFileToRepo(filename, content, commit='updated'):
     url = f'https://api.github.com/repos/{github_name_}/FGODailyBonusLog/contents/' + filename
-    res = requests.get(url=url)
-    jobject = json.loads(res.text)
     header = {
         'Content-Type': 'application/json',
         'User-Agent': f'{github_name_}_bot',
         'Authorization': 'token ' + github_token_,
     }
+    # 取已有文件的 sha（必须带鉴权，否则匿名请求会被限流）
+    jobject = {}
+    try:
+        jobject = requests.get(url=url, headers=header, timeout=30).json()
+    except Exception:
+        jobject = {}
     content = str(base64.b64encode(content.encode('utf-8')), 'utf-8')
     form = {
         'message': commit,
@@ -114,11 +163,18 @@ def UploadFileToRepo(filename, content, commit='updated'):
         },
         'content': content,
     }
-    if 'sha' in jobject:
+    if isinstance(jobject, dict) and 'sha' in jobject:
         form['sha'] = jobject['sha']
     form = json.dumps(form)
-    result = requests.put(url, data=form, headers=header)
-    print(result.status_code)
+    try:
+        result = requests.put(url, data=form, headers=header, timeout=30)
+    except Exception as ex:
+        print(f'[日志] GitHub 同步失败：{ex}（本地日志已保存，不影响签到）')
+        return
+    if result.status_code in (200, 201):
+        print('[日志] 已同步到 GitHub')
+    else:
+        print(f'[日志] GitHub 同步失败（HTTP {result.status_code}），本地日志已保存，不影响签到')
 
 
 # ===== End =====
