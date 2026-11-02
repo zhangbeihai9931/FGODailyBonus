@@ -153,6 +153,20 @@ A：第二次登录不会再发奖励，属于正常现象。
 
 ---
 
+## 已验证环境
+
+| 环境 | 版本 / 说明 |
+|---|---|
+| GitHub Actions | `ubuntu-latest` + Python 3.11 |
+| Windows 本地 | Python 3.14.7 + requests 2.34.2 + cryptography 50.0.2（OpenSSL 4.0.3） |
+| 日志仓库 | 实测 **private** 可用（走带 token 的 API） |
+
+> 如果你的 `cryptography` 版本很旧（比如 42.x 之前），`private_key.pem` 可能因为
+> p/q 顺序问题被新版 OpenSSL 拒绝，报 `ASN.1 parsing error: invalid value`。
+> 本仓库里的私钥已按 p > q 规范化，模数未改动，签名结果与原版一致。
+
+---
+
 ## 致谢与许可
 
 - 原始项目：[hexstr/FGODailyBonus](https://github.com/hexstr/FGODailyBonus)
