@@ -12,6 +12,9 @@ on:
     - cron: '0 23 * * *'    # 北京 07:00，兜底
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: fgo-daily-bonus
   cancel-in-progress: false
@@ -47,3 +50,16 @@ jobs:
           GithubToken: ${{ secrets.VERY_IMPORTANT_TOKEN }}
           GithubName: ${{ secrets.VERY_IMPORTANT_NAME }}
           NAME_SALT: ${{ secrets.NAME_SALT }}
+
+      # 每次运行往 runs.log 追加一行并提交，保持仓库“有活动”。
+      # GitHub 规定公开仓库 60 天无活动会自动停用定时工作流，
+      # 用内置 GITHUB_TOKEN 提交不会递归触发新的工作流。
+      - name: Keep-alive commit
+        if: always()
+        run: |
+          echo "$(date -u +'%Y-%m-%d %H:%M:%S UTC')  run #${{ github.run_number }}  ${{ job.status }}" >> runs.log
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runs.log
+          git commit -m "run #${{ github.run_number }}" || echo "nothing to commit"
+          git push
