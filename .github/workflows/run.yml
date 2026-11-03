@@ -1,6 +1,8 @@
 name: FGODailyBonus
 
 on:
+  push:
+    branches: [ master ]
   schedule:
     # 目标：北京时间凌晨 3 点（= UTC 19:00）
     # GitHub 的定时任务常年延迟 3~4 小时（本项目实测 3h09m ~ 3h57m），偶尔还会直接丢掉。
