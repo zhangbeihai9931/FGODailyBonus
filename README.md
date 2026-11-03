@@ -153,6 +153,20 @@ A：第二次登录不会再发奖励，属于正常现象。
 
 ---
 
+## 本地自动化（可选）
+
+如果你有 Windows 电脑，可以用计划任务每天自动推一次心跳来触发云端签到，
+避免依赖 GitHub 不靠谱的 cron。脚本在 [`local/`](local/) 目录：
+
+```powershell
+copy local\env.example local\env.txt   # 填好自己的凭证
+powershell -ExecutionPolicy Bypass -File local\install_task.ps1 -Time 03:00
+```
+
+细节见 [local/README.md](local/README.md)。
+
+---
+
 ## 已验证环境
 
 | 环境 | 版本 / 说明 |

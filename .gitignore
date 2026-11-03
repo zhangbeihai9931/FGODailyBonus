@@ -10,6 +10,9 @@ logs/
 cfg.json
 最新结果.txt
 FGO.txt
+local/env.txt
+local/env.local.txt
+heartbeat.txt
 *.log
 tmp/
 
