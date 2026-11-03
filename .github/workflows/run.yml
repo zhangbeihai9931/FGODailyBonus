@@ -1,36 +1,47 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
-name: Python package
+name: FGODailyBonus
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
   schedule:
-    - cron: '30 19 * * *'
+    # 目标：北京时间凌晨 3 点（= UTC 19:00）
+    # GitHub 的定时任务常年延迟 3~4 小时（本项目实测 3h09m ~ 3h57m），偶尔还会直接丢掉。
+    # 所以排三个时间点，谁先跑成功算谁的 —— 同一天重复登录不会重复发奖励。
+    - cron: '30 15 * * *'   # 北京 23:30，加上常见延迟后，实际落在凌晨 3 点前后
+    - cron: '0 19 * * *'    # 北京 03:00，名义目标
+    - cron: '0 23 * * *'    # 北京 07:00，兜底
+  workflow_dispatch:
+
+concurrency:
+  group: fgo-daily-bonus
+  cancel-in-progress: false
 
 jobs:
-  build:
-
+  signin:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
+    timeout-minutes: 15
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Test
-      run: |
-        python3 main.py
-      env:
-        userIds: ${{ secrets.GAME_USERIDS }}
-        authKeys: ${{ secrets.GAME_AUTHKEYS }}
-        secretKeys: ${{ secrets.GAME_SECRETKEYS }}
-        verCode: ${{ secrets.GAME_VERCODE }}
-        UserAgent: ${{ secrets.GAME_USERAGENT }}
-        TGBotToken: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TGAdminId: ${{ secrets.TELEGRAM_ADMIN_ID }}
-        GithubToken: ${{ secrets.VERY_IMPORTANT_TOKEN }}
-        GithubName: ${{ secrets.VERY_IMPORTANT_NAME }}
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip -q
+          pip install -q -r requirements.txt
+
+      - name: Daily check-in
+        run: python main.py
+        env:
+          userIds: ${{ secrets.GAME_USERIDS }}
+          authKeys: ${{ secrets.GAME_AUTHKEYS }}
+          secretKeys: ${{ secrets.GAME_SECRETKEYS }}
+          verCode: ${{ secrets.GAME_VERCODE }}
+          UserAgent: ${{ secrets.GAME_USERAGENT }}
+          TGBotToken: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TGAdminId: ${{ secrets.TELEGRAM_ADMIN_ID }}
+          GithubToken: ${{ secrets.VERY_IMPORTANT_TOKEN }}
+          GithubName: ${{ secrets.VERY_IMPORTANT_NAME }}
+          NAME_SALT: ${{ secrets.NAME_SALT }}
