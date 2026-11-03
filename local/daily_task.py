@@ -11,6 +11,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)          # 仓库根目录
+sys.path.insert(0, ROOT)              # 让 main.py 里的 import 找得到
 LOG_DIR = os.path.join(ROOT, "logs")
 TRACE = os.path.join(LOG_DIR, "自动化记录.txt")
 
